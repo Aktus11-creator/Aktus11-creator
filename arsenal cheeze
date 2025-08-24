@@ -287,69 +287,45 @@ local function canSeeTarget(targetPlayer)
    return raycastResult == nil
 end
 
--- Infinite Ammo Function
+-- Optimized Infinite Ammo Function
 local function setInfiniteAmmo()
-   if not infAmmoEnabled then return end
-   
-   local player = game.Players.LocalPlayer
-   if not player.Character then return end
-   
-   -- Method 1: Look for tools with ammo properties
-   for _, tool in pairs(player.Character:GetChildren()) do
-      if tool:IsA("Tool") then
-         -- Common ammo property names
-         local ammoNames = {"Ammo", "CurrentAmmo", "Magazine", "Clip", "Bullets", "Rounds"}
-         for _, ammoName in pairs(ammoNames) do
-            if tool:FindFirstChild(ammoName) then
-               if tool[ammoName]:IsA("IntValue") or tool[ammoName]:IsA("NumberValue") then
-                  tool[ammoName].Value = 999
-               end
+    if not infAmmoEnabled then return end
+    
+    local player = game.Players.LocalPlayer
+    local playerGui = player:FindFirstChild("PlayerGui")
+    
+    if playerGui then
+        -- Method 1: Set main ammo counter
+        local vitals = playerGui:FindFirstChild("Vitals")
+        if vitals then
+            local ammo = vitals:FindFirstChild("Ammo")
+            if ammo then
+                local ammoLeft = ammo:FindFirstChild("AmmoLeft")
+                if ammoLeft and ammoLeft:IsA("IntValue") then
+                    ammoLeft.Value = 999
+                end
             end
-         end
-         
-         -- Check for ammo in tool's script or configuration
-         for _, child in pairs(tool:GetDescendants()) do
-            if child:IsA("Configuration") or child:IsA("Folder") then
-               for _, ammoName in pairs(ammoNames) do
-                  if child:FindFirstChild(ammoName) then
-                     if child[ammoName]:IsA("IntValue") or child[ammoName]:IsA("NumberValue") then
-                        child[ammoName].Value = 999
-                     end
-                  end
-               end
+        end
+        
+        -- Method 2: Set individual weapon ammo
+        local weaponFolders = {
+            "DB Shotgun", "Peacemaker", "Minigun", "Bomb", 
+            "Scope", "Star3", "Ice", "M16A2", "Hunt"
+        }
+        
+        for _, weaponName in pairs(weaponFolders) do
+            local weaponFolder = playerGui:FindFirstChild(weaponName)
+            if weaponFolder then
+                local key3 = weaponFolder:FindFirstChild("Key3")
+                if key3 then
+                    local ammoLeft = key3:FindFirstChild("AmmoLeft")
+                    if ammoLeft and ammoLeft:IsA("IntValue") then
+                        ammoLeft.Value = 999
+                    end
+                end
             end
-         end
-      end
-   end
-   
-   -- Method 2: Look for ammo in backpack
-   for _, tool in pairs(player.Backpack:GetChildren()) do
-      if tool:IsA("Tool") then
-         local ammoNames = {"Ammo", "CurrentAmmo", "Magazine", "Clip", "Bullets", "Rounds"}
-         for _, ammoName in pairs(ammoNames) do
-            if tool:FindFirstChild(ammoName) then
-               if tool[ammoName]:IsA("IntValue") or tool[ammoName]:IsA("NumberValue") then
-                  tool[ammoName].Value = 999
-               end
-            end
-         end
-      end
-   end
-   
-   -- Method 3: Look for ammo in PlayerGui (for GUI-based ammo systems)
-   local playerGui = player:FindFirstChild("PlayerGui")
-   if playerGui then
-      for _, gui in pairs(playerGui:GetDescendants()) do
-         if gui:IsA("IntValue") or gui:IsA("NumberValue") then
-            local ammoNames = {"Ammo", "CurrentAmmo", "Magazine", "Clip", "Bullets", "Rounds"}
-            for _, ammoName in pairs(ammoNames) do
-               if string.find(gui.Name:lower(), ammoName:lower()) then
-                  gui.Value = 999
-               end
-            end
-         end
-      end
-   end
+        end
+    end
 end
 
 -- FOV Circle creation
@@ -524,7 +500,6 @@ local WallCheckToggle = MainTab:CreateToggle({
    Flag = "WallCheck",
    Callback = function(Value)
       wallCheck = Value
-      -- DO NOT apply wall check to ESP - ESP should show all players regardless of walls
    end,
 })
 
@@ -593,6 +568,7 @@ local InfAmmoToggle = MainTab:CreateToggle({
       infAmmoEnabled = Value
       if Value then
          infAmmoConnection = game:GetService("RunService").Heartbeat:Connect(function()
+            wait(0.5)  -- Run every 0.5 seconds to reduce lag
             setInfiniteAmmo()
          end)
       else
