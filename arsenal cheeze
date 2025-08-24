@@ -42,6 +42,7 @@ local infiniteJumpConnection = nil
 local aimbotConnection = nil
 local fovUpdateConnection = nil
 local triggerBotConnection = nil
+local infAmmoConnection = nil
 local aimbotEnabled = false
 local triggerBotEnabled = false
 local aimbotFOV = 90
@@ -52,6 +53,7 @@ local originalWalkSpeed = 16
 local customSpeed = 50
 local wallCheck = false
 local teamCheck = false
+local infAmmoEnabled = false
 
 local InfiniteJumpToggle = MainTab:CreateToggle({
    Name = "🚀 Infinite Jump",
@@ -285,6 +287,71 @@ local function canSeeTarget(targetPlayer)
    return raycastResult == nil
 end
 
+-- Infinite Ammo Function
+local function setInfiniteAmmo()
+   if not infAmmoEnabled then return end
+   
+   local player = game.Players.LocalPlayer
+   if not player.Character then return end
+   
+   -- Method 1: Look for tools with ammo properties
+   for _, tool in pairs(player.Character:GetChildren()) do
+      if tool:IsA("Tool") then
+         -- Common ammo property names
+         local ammoNames = {"Ammo", "CurrentAmmo", "Magazine", "Clip", "Bullets", "Rounds"}
+         for _, ammoName in pairs(ammoNames) do
+            if tool:FindFirstChild(ammoName) then
+               if tool[ammoName]:IsA("IntValue") or tool[ammoName]:IsA("NumberValue") then
+                  tool[ammoName].Value = 999
+               end
+            end
+         end
+         
+         -- Check for ammo in tool's script or configuration
+         for _, child in pairs(tool:GetDescendants()) do
+            if child:IsA("Configuration") or child:IsA("Folder") then
+               for _, ammoName in pairs(ammoNames) do
+                  if child:FindFirstChild(ammoName) then
+                     if child[ammoName]:IsA("IntValue") or child[ammoName]:IsA("NumberValue") then
+                        child[ammoName].Value = 999
+                     end
+                  end
+               end
+            end
+         end
+      end
+   end
+   
+   -- Method 2: Look for ammo in backpack
+   for _, tool in pairs(player.Backpack:GetChildren()) do
+      if tool:IsA("Tool") then
+         local ammoNames = {"Ammo", "CurrentAmmo", "Magazine", "Clip", "Bullets", "Rounds"}
+         for _, ammoName in pairs(ammoNames) do
+            if tool:FindFirstChild(ammoName) then
+               if tool[ammoName]:IsA("IntValue") or tool[ammoName]:IsA("NumberValue") then
+                  tool[ammoName].Value = 999
+               end
+            end
+         end
+      end
+   end
+   
+   -- Method 3: Look for ammo in PlayerGui (for GUI-based ammo systems)
+   local playerGui = player:FindFirstChild("PlayerGui")
+   if playerGui then
+      for _, gui in pairs(playerGui:GetDescendants()) do
+         if gui:IsA("IntValue") or gui:IsA("NumberValue") then
+            local ammoNames = {"Ammo", "CurrentAmmo", "Magazine", "Clip", "Bullets", "Rounds"}
+            for _, ammoName in pairs(ammoNames) do
+               if string.find(gui.Name:lower(), ammoName:lower()) then
+                  gui.Value = 999
+               end
+            end
+         end
+      end
+   end
+end
+
 -- FOV Circle creation
 local function createFOVCircle()
    if fovCircle then
@@ -515,6 +582,25 @@ local TargetPartDropdown = MainTab:CreateDropdown({
    Flag = "TargetPart",
    Callback = function(Option)
       targetPart = Option[1]
+   end,
+})
+
+local InfAmmoToggle = MainTab:CreateToggle({
+   Name = "🔫 Infinite Ammo",
+   CurrentValue = false,
+   Flag = "InfAmmo",
+   Callback = function(Value)
+      infAmmoEnabled = Value
+      if Value then
+         infAmmoConnection = game:GetService("RunService").Heartbeat:Connect(function()
+            setInfiniteAmmo()
+         end)
+      else
+         if infAmmoConnection then
+            infAmmoConnection:Disconnect()
+            infAmmoConnection = nil
+         end
+      end
    end,
 })
 
