@@ -51,6 +51,7 @@ local fovCircle = nil
 local originalWalkSpeed = 16
 local customSpeed = 50
 local wallCheck = false
+local teamCheck = false
 
 local InfiniteJumpToggle = MainTab:CreateToggle({
    Name = "🚀 Infinite Jump",
@@ -218,6 +219,39 @@ local NameColorPicker = MainTab:CreateColorPicker({
 -- Combat Section
 local CombatSection = MainTab:CreateSection("⚔️ Combat")
 
+-- Team Detection Function
+local function isOnSameTeam(player1, player2)
+   if not teamCheck then return false end
+   
+   -- Method 1: Check Team property
+   if player1.Team and player2.Team then
+      return player1.Team == player2.Team
+   end
+   
+   -- Method 2: Check TeamColor property
+   if player1.TeamColor and player2.TeamColor then
+      return player1.TeamColor == player2.TeamColor
+   end
+   
+   -- Method 3: Check shirt color (common in some FPS games)
+   if player1.Character and player2.Character then
+      local shirt1 = player1.Character:FindFirstChild("Shirt")
+      local shirt2 = player2.Character:FindFirstChild("Shirt")
+      if shirt1 and shirt2 then
+         return shirt1.ShirtTemplate == shirt2.ShirtTemplate
+      end
+      
+      -- Method 4: Check body colors
+      local bodyColors1 = player1.Character:FindFirstChild("Body Colors")
+      local bodyColors2 = player2.Character:FindFirstChild("Body Colors")
+      if bodyColors1 and bodyColors2 then
+         return bodyColors1.TorsoColor3 == bodyColors2.TorsoColor3
+      end
+   end
+   
+   return false
+end
+
 -- Wall Detection Function
 local function canSeeTarget(targetPlayer)
    if not wallCheck then return true end
@@ -277,7 +311,12 @@ local function getClosestPlayer()
    
    for _, player in pairs(game.Players:GetPlayers()) do
       if player ~= localPlayer and player.Character and player.Character:FindFirstChild(targetPart) then
-         -- Check wall detection first
+         -- Check team detection first
+         if isOnSameTeam(localPlayer, player) then
+            continue
+         end
+         
+         -- Check wall detection
          if not canSeeTarget(player) then
             continue
          end
@@ -325,7 +364,10 @@ local function getTargetAtCrosshair()
       if character:FindFirstChild("Humanoid") then
          local player = game.Players:GetPlayerFromCharacter(character)
          if player and player ~= localPlayer then
-            return player
+            -- Check team detection for triggerbot too
+            if not isOnSameTeam(localPlayer, player) then
+               return player
+            end
          end
       end
    end
@@ -391,12 +433,25 @@ local AimbotToggle = MainTab:CreateToggle({
    end,
 })
 
+local TeamCheckToggle = MainTab:CreateToggle({
+   Name = "👥 Team Check",
+   CurrentValue = false,
+   Flag = "TeamCheck",
+   Callback = function(Value)
+      teamCheck = Value
+      -- Also update ESP team check
+      ESP.Teamcheck = Value
+   end,
+})
+
 local WallCheckToggle = MainTab:CreateToggle({
    Name = "🧱 Wall Check",
    CurrentValue = false,
    Flag = "WallCheck",
    Callback = function(Value)
       wallCheck = Value
+      -- Also update ESP wall check
+      ESP.WallCheck = Value
    end,
 })
 
