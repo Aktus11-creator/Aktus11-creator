@@ -233,15 +233,22 @@ local function isOnSameTeam(player1, player2)
       return player1.TeamColor == player2.TeamColor
    end
    
-   -- Method 3: Check shirt color (common in some FPS games)
+   -- Method 3: Check shirt color/template (main team detection method)
    if player1.Character and player2.Character then
       local shirt1 = player1.Character:FindFirstChild("Shirt")
       local shirt2 = player2.Character:FindFirstChild("Shirt")
+      
+      -- If both have shirts, compare the shirt templates
       if shirt1 and shirt2 then
          return shirt1.ShirtTemplate == shirt2.ShirtTemplate
       end
       
-      -- Method 4: Check body colors
+      -- If one has a shirt and the other doesn't, they're enemies
+      if (shirt1 and not shirt2) or (not shirt1 and shirt2) then
+         return false
+      end
+      
+      -- Method 4: Check body colors as fallback
       local bodyColors1 = player1.Character:FindFirstChild("Body Colors")
       local bodyColors2 = player2.Character:FindFirstChild("Body Colors")
       if bodyColors1 and bodyColors2 then
