@@ -252,7 +252,7 @@ local function isOnSameTeam(player1, player2)
    return false
 end
 
--- Wall Detection Function
+-- Wall Detection Function (ONLY for aimbot)
 local function canSeeTarget(targetPlayer)
    if not wallCheck then return true end
    
@@ -316,7 +316,7 @@ local function getClosestPlayer()
             continue
          end
          
-         -- Check wall detection
+         -- Check wall detection (ONLY for aimbot)
          if not canSeeTarget(player) then
             continue
          end
@@ -439,19 +439,18 @@ local TeamCheckToggle = MainTab:CreateToggle({
    Flag = "TeamCheck",
    Callback = function(Value)
       teamCheck = Value
-      -- Also update ESP team check
+      -- Apply team check to ESP as well
       ESP.Teamcheck = Value
    end,
 })
 
 local WallCheckToggle = MainTab:CreateToggle({
-   Name = "🧱 Wall Check",
+   Name = "🧱 Wall Check (Aimbot Only)",
    CurrentValue = false,
    Flag = "WallCheck",
    Callback = function(Value)
       wallCheck = Value
-      -- Also update ESP wall check
-      ESP.WallCheck = Value
+      -- DO NOT apply wall check to ESP - ESP should show all players regardless of walls
    end,
 })
 
